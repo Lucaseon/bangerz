@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-BANGERZ: a demo of an XRPL closed-ended Vault (XLS-65) + Lending Protocol (XLS-66, V1.1) loan broker cycle, built for the XRPL Lending Protocol Hackathon (DeVinci Blockchain × Ripple). Track 2, Vanilla flavour. There is no app server or frontend yet — the entire project is one seeding/demo script (`seed.mjs`) run step by step against the Public XRPL Devnet, plus a vendored DevEx feedback-capture tool.
+BANGERZ: a demo of an XRPL closed-ended Vault (XLS-65) + Lending Protocol (XLS-66, V1.1) loan broker cycle, built for the XRPL Lending Protocol Hackathon (DeVinci Blockchain × Ripple). Track 2, Vanilla flavour. The chain-facing side is one seeding/demo script (`seed.mjs`) run step by step against the Public XRPL Devnet; `web/` is a Next.js front reading that same state, plus a vendored DevEx feedback-capture tool.
 
 Read `CONTEXTE.md` first in any session — it holds the current on-chain state (vault/loan/broker IDs, current phase, what's done vs. pending) and the hackathon deadlines. It changes throughout the event; this file does not.
 
@@ -34,6 +34,17 @@ Steps are defined in the `STEPS` map at the bottom of `seed.mjs`: `accounts`, `v
 **`tfVaultDonation` does not exist.** Despite being referenced in secondary planning material for this event, there is no donation flag on `VaultDeposit` in this xrpl.js version, in `ripple-binary-codec`'s definitions, or in the current XLS-65 spec/xrpl.org reference (confirmed: "There are no flags defined for VaultDeposit transactions"). The vault's yield mechanism is `LoanPay` itself: repayment raises `AssetsTotal` by the interest portion only (principal repayment is asset-neutral, since the outstanding loan was already counted as a vault asset) — cash-basis interest recognition, not a separate injection step.
 
 **`xrpl-devex-hook/` is a vendored, separately-git-tracked tool**, not part of this app. It captures XRPL developer-experience feedback (`/xrpl-feedback`, `/xrpl-status`, `/xrpl-session-analysis`, `/xrpl-setup` skills) into `.xrpl-devex/` and reports to the event organizer. Its own docs (`xrpl-devex-hook/README.md`, `docs/TAXONOMY.md`) are authoritative for how it works; nothing in this app depends on it.
+
+## Front-end (`web/`)
+
+Next.js 16 (App Router) + TypeScript + Tailwind v4, scaffolded per `design/architecture.md` and styled per `design/design.md` (colours, type, spacing, components) and `design/copy-deck.md` (all UI strings — never invent copy). Only `/console` is built (the demo/jury page); `design/architecture.md` itself prioritizes console → one campaign page → the rest, and marketplace/campaign/dashboard/positions were cut for time.
+
+**Deliberate deviations from `design/architecture.md`,** made under deadline pressure — reconcile if more time appears:
+- **No `state/deployment.json` and no `lib/xrpl/*.mjs` extraction.** The existing root `state.json` (from `seed.mjs`) is the only source of truth; `web/` never talks to it directly. Instead, two small root-level scripts front it: `read-state.mjs` (read-only ledger snapshot: vault, broker, loan, txs, rejections, PPS) and `run-action.mjs <step>` (spawns one whitelisted `seed.mjs` step — currently `impair`/`default` — and reports exactly the new tx/rejection rows it produced). `web/src/app/api/state` and `web/src/app/api/manage` are thin wrappers that `spawnSync` these two scripts from the repo root. This reuses the already-debugged transaction logic (the `tfLoanLatePayment` fix, the timing margins, the `reject-red` label fix) instead of re-deriving it in TypeScript.
+- **Tailwind v4, not v3.** `create-next-app` scaffolded the CSS-first config (`@theme` in `web/src/app/globals.css`), not a `tailwind.config.ts`. All of design.md §8's tokens (colours, `bg-brand`/`bg-header`/`bg-fade` gradients, radii, `shadow-glow`) are ported there as `--color-*` / `--background-image-*` / `--radius-*` / `--shadow-*` custom properties. Font family is Syne/Raleway/JetBrains Mono per design.md §3 (copy-deck and design.md agree on this trio; an earlier draft of prompts.md said Poppins — design.md wins per its own §11.4 precedence rule).
+- **`tfVaultDonation` doesn't exist** (see above) — the console's "happy path" and `PPSCard` do not call a donate endpoint. There is no `/api/donate` route. The PPS proof instead shows the real mechanism: `LoanPay` repayment raising `AssetsTotal`.
+- **The three guardrail rejections are shown as historical record, not live-retriggerable.** They were captured for real while this vault was actually in Subscription/Investment; those phases are now permanently in the past for this vault (dates are immutable, see above), so re-submitting them now would hit different, less meaningful ledger states. `GuardrailCard` renders the stored `rejections` from `state.json` with their real hashes.
+- **The "happy path" repay/redeem buttons are disabled with a receipt shown below them**, not live either — this vault's second loan is already fully repaid and both lenders already redeemed. The **impair/default buttons are live** (loan #1 never received a payment and is untouched), which is why they're the ones actually wired to `/api/manage`.
 
 ## Deliverables the brief expects
 

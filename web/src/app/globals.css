@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #040308;
+  --color-surface: #0d0b14;
+  --color-surface-raised: #161221;
+  --color-surface-inset: #1d1828;
+  --color-line: #241f33;
+  --color-ink: #ffffff;
+  --color-ink-muted: #9c96ad;
+  --color-ink-label: #7c7590;
+  --color-ink-faint: #5e5872;
+
+  --color-coral: #ee538a;
+  --color-magenta: #de54dd;
+  --color-violet: #a06fea;
+  --color-secured: #ee538a;
+  --color-community: #a06fea;
+  --color-due: #de54dd;
+  --color-ok: #3ed598;
+  --color-bad: #ff5a5a;
+  --color-warn: #ffb84d;
+
+  --font-display: var(--font-syne), system-ui, sans-serif;
+  --font-sans: var(--font-raleway), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), monospace;
+
+  --radius-card: 20px;
+  --radius-input: 12px;
+
+  --background-image-brand: linear-gradient(90deg, #ee538a 0%, #de54dd 45%, #a06fea 100%);
+  --background-image-header: linear-gradient(105deg, #a03c61 0%, #9a3b98 45%, #704ea6 100%);
+  --background-image-fade: linear-gradient(180deg, transparent 0%, #040308 100%);
+
+  --shadow-glow: 0 8px 32px rgba(160, 111, 234, 0.28);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-feature-settings: 'tnum' 1;
+}
+
+@layer components {
+  .display-xl {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 88px;
+    letter-spacing: -0.01em;
+    line-height: 1.0;
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 56px;
+    letter-spacing: -0.005em;
+    line-height: 1.05;
+  }
+  .h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 20px;
+  }
+  .amount-xl {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 44px;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .amount {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 32px;
+    letter-spacing: -0.005em;
+    font-variant-numeric: tabular-nums;
+  }
+  .body-text {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .label {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-label);
+  }
+  .chip-text {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    font-size: 13px;
+  }
+}
