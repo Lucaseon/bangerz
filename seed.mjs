@@ -27,7 +27,9 @@ import {
   dropsToXrp,
   VaultKind,
   LoanManageFlags,
+  LoanPayFlags,
   unixTimeToRippleTime,
+  rippleTimeToUnixTime,
 } from 'xrpl'
 import { encode, decode, encodeForSigningCounterparty } from 'ripple-binary-codec'
 import { sign } from 'ripple-keypairs'
@@ -57,6 +59,7 @@ function signLoanSetByCounterparty(wallet, transaction) {
 
 const NETWORK = 'wss://s.devnet.rippletest.net:51233/'
 const STATE_FILE = './state.json'
+const TX_LINKS_FILE = './tx-links.md'
 
 const CFG = {
   // Fenêtres du vault closed-ended, en minutes à partir du VaultCreate.
@@ -99,6 +102,7 @@ const logTx = (label, res) => {
   const ok = code === 'tesSUCCESS'
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(26)} ${code}`)
   console.log(`     https://devnet.xrpl.org/transactions/${hash}`)
+  if (ok) appendTxLink(label, hash)
   const s = loadState()
   s.txs = s.txs ?? []
   s.txs.push({ label, code, hash, at: new Date().toISOString() })
@@ -146,6 +150,25 @@ const expectReject = async (client, wallet, tx, label) => {
 }
 
 const w = (s, role) => Wallet.fromSeed(s.wallets[role].seed)
+
+const appendTxLink = (label, hash) => {
+  if (!fs.existsSync(TX_LINKS_FILE)) {
+    fs.writeFileSync(TX_LINKS_FILE, '# tx-links\n\n')
+  }
+  fs.appendFileSync(
+    TX_LINKS_FILE,
+    `- ${label} · https://devnet.xrpl.org/transactions/${hash}\n`
+  )
+}
+
+const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const sleepUntil = async (targetMs, label) => {
+  const waitMs = targetMs - Date.now()
+  if (waitMs <= 0) return
+  console.log(`     … attente ${Math.ceil(waitMs / 1000)}s avant ${label}`)
+  await sleepMs(waitMs)
+}
 
 // ---------------------------------------------------------------- STEPS
 
@@ -307,6 +330,116 @@ async function manage(client, flag, label) {
   }, label)
 }
 
+// ---------------------------------------------------------------- SECOND LOAN
+// Le premier prêt (s.loanId) a raté ses 4 fenêtres de paiement (tecEXPIRED, voir feedback).
+// PaymentRemaining/PrincipalOutstanding n'ont jamais bougé dessus : il est irrécupérable.
+// On ouvre un second prêt sur le même vault/broker, avec un LoanPay cadencé au plus près
+// de NextPaymentDueDate + GracePeriod au lieu d'un rythme "à peu près 5 min".
+
+async function readLoan(client, loanId) {
+  const res = await client.request({
+    command: 'ledger_entry',
+    index: loanId,
+    ledger_index: 'validated',
+  })
+  return res.result.node
+}
+
+async function coverTopUp(client) {
+  const s = loadState()
+  await send(client, w(s, 'broker'), {
+    TransactionType: 'LoanBrokerCoverDeposit',
+    Account: s.wallets.broker.address,
+    LoanBrokerID: s.loanBrokerId,
+    Amount: xrpToDrops(CFG.coverXrp),
+  }, 'CoverDeposit (top-up prêt 2)')
+}
+
+async function investFresh(client) {
+  const s = loadState()
+  if (s.loanId2) {
+    console.log(`skip second loan déjà créé · ${s.loanId2}`)
+    return
+  }
+  const broker = w(s, 'broker')
+  const borrower = w(s, 'borrower')
+
+  const prepared = await client.autofill(buildLoanSet(s))
+  const first = broker.sign(prepared)
+  const cosigned = signLoanSetByCounterparty(borrower, first.tx_blob)
+
+  const res = await client.submitAndWait(cosigned.tx_blob)
+  logTx('LoanSet #2 (double sign)', res)
+  if (res.result.meta?.TransactionResult !== 'tesSUCCESS') {
+    throw new Error(`LoanSet #2 a échoué : ${res.result.meta?.TransactionResult}`)
+  }
+
+  s.loanId2 = createdId(res, 'Loan')
+  saveState(s)
+  console.log(`     LoanID #2 ${s.loanId2}`)
+}
+
+async function payScheduled(client) {
+  const s = loadState()
+  if (!s.loanId2) throw new Error('Pas de second prêt. Lance investFresh (via finish-phase4) d\'abord.')
+  const borrower = w(s, 'borrower')
+
+  for (let i = 0; i < CFG.paymentTotal; i++) {
+    const loan = await readLoan(client, s.loanId2)
+    if (Number(loan.PaymentRemaining) === 0) {
+      console.log('     Prêt #2 déjà entièrement remboursé.')
+      break
+    }
+    const dueMs = rippleTimeToUnixTime(loan.NextPaymentDueDate)
+    // Le spec XLS-66 (§3.11.4.2) est explicite : dès que currentTime >= NextPaymentDueDate,
+    // LoanPay échoue en tecEXPIRED SAUF si le flag tfLoanLatePayment est posé. GracePeriod
+    // ne prolonge pas la fenêtre de paiement, il ne fait que retarder l'éligibilité au
+    // impair/default côté broker. On vise donc juste après l'échéance, sans se soucier
+    // d'une fenêtre de grâce qui n'existe pas pour LoanPay.
+    // +3s s'est révélé trop juste (tecTOO_SOON observé à due+8s réel) : marge élargie
+    // pour absorber le délai de validation de ledger (submitAndWait attend le prochain
+    // ledger validé, ~4-6s de plus après le close_time visé).
+    await sleepUntil(dueMs + 20000, `échéance ${i + 1}/${CFG.paymentTotal}`)
+
+    const isLate = Date.now() >= dueMs
+    const amount = Math.ceil(Number(loan.PeriodicPayment)).toString()
+    const res = await send(client, borrower, {
+      TransactionType: 'LoanPay',
+      Account: borrower.address,
+      LoanID: s.loanId2,
+      Amount: amount,
+      ...(isLate ? { Flags: LoanPayFlags.tfLoanLatePayment } : {}),
+    }, `LoanPay #2 (${i + 1}/${CFG.paymentTotal})${isLate ? ' [late]' : ''}`)
+
+    if (res.result.meta?.TransactionResult !== 'tesSUCCESS') {
+      throw new Error(`LoanPay ${i + 1}/${CFG.paymentTotal} a échoué : ${res.result.meta?.TransactionResult}`)
+    }
+  }
+}
+
+async function finishPhase4(client) {
+  const before = await client.request({
+    command: 'ledger_entry',
+    vault: loadState().vaultId,
+    ledger_index: 'validated',
+  })
+  console.log(`\nAssetsTotal avant : ${dropsToXrp(before.result.node.AssetsTotal)} XRP`)
+
+  await coverTopUp(client)
+  await investFresh(client)
+  await payScheduled(client)
+
+  const after = await client.request({
+    command: 'ledger_entry',
+    vault: loadState().vaultId,
+    ledger_index: 'validated',
+  })
+  const beforeXrp = Number(dropsToXrp(before.result.node.AssetsTotal))
+  const afterXrp = Number(dropsToXrp(after.result.node.AssetsTotal))
+  console.log(`AssetsTotal après : ${afterXrp} XRP`)
+  console.log(`Delta             : ${(afterXrp - beforeXrp).toFixed(6)} XRP`)
+}
+
 // --- les trois rejets exigés par le minimum bar Track 2 ---
 
 async function rejectSub(client) {
@@ -410,6 +543,10 @@ const STEPS = {
   impair: (c) => manage(c, LoanManageFlags.tfLoanImpair, 'LoanManage impair'),
   default: (c) => manage(c, LoanManageFlags.tfLoanDefault, 'LoanManage default'),
   status,
+  'cover-topup': coverTopUp,
+  'invest2': investFresh,
+  'pay2': payScheduled,
+  'finish-phase4': finishPhase4,
 }
 
 const step = process.argv[2]

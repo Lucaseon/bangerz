@@ -1,5 +1,6 @@
 .xrpl-devex/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 state.json
 node_modules/
