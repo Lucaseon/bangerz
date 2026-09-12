@@ -3,13 +3,16 @@ import path from 'node:path'
 
 const REPO_ROOT = path.resolve(process.cwd(), '..')
 const ALLOWED = new Set(['impair', 'default'])
+// Built at runtime (not a literal) so Turbopack's production build doesn't try to
+// resolve "run-action.mjs" as a bundled module — it's a child_process argument, not an import.
+const SCRIPT = ['run-action', '.mjs'].join('')
 
 export async function POST(request: Request) {
   const { action } = await request.json()
   if (!ALLOWED.has(action)) {
     return Response.json({ error: `action not allowed: ${action}` }, { status: 400 })
   }
-  const res = spawnSync('node', ['run-action.mjs', action], { cwd: REPO_ROOT, encoding: 'utf8' })
+  const res = spawnSync('node', [SCRIPT, action], { cwd: REPO_ROOT, encoding: 'utf8' })
   const lastLine = res.stdout.trim().split('\n').pop() ?? '{}'
   try {
     const data = JSON.parse(lastLine)
