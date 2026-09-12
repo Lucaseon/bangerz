@@ -27,9 +27,31 @@ import {
   dropsToXrp,
   VaultKind,
   LoanManageFlags,
-  signLoanSetByCounterparty,
   unixTimeToRippleTime,
 } from 'xrpl'
+import { encode, decode, encodeForSigningCounterparty } from 'ripple-binary-codec'
+import { sign } from 'ripple-keypairs'
+
+/**
+ * Fix pour xrpl@5.2.0-beta.0 :
+ * Dans xrpl, computeSignature appelle encodeForSigning (préfixe HashPrefix.transactionSig = 0x53545800)
+ * au lieu de encodeForSigningCounterparty (préfixe HashPrefix.counterpartyTransactionSig = 0x43535400).
+ * Ce helper encode correctement pour la contrepartie.
+ */
+function signLoanSetByCounterparty(wallet, transaction) {
+  const tx = typeof transaction === 'string' ? decode(transaction) : JSON.parse(JSON.stringify(transaction))
+  const counterpartyHex = encodeForSigningCounterparty(tx)
+  const counterpartySig = sign(counterpartyHex, wallet.privateKey)
+  tx.CounterpartySignature = {
+    SigningPubKey: wallet.publicKey,
+    TxnSignature: counterpartySig,
+  }
+  const serialized = encode(tx)
+  return {
+    tx,
+    tx_blob: serialized,
+  }
+}
 
 // ---------------------------------------------------------------- CONFIG
 
@@ -228,6 +250,10 @@ function buildLoanSet(s) {
 
 async function invest(client) {
   const s = loadState()
+  if (s.loanId) {
+    console.log(`skip loan déjà créé · ${s.loanId}`)
+    return
+  }
   const broker = w(s, 'broker')
   const borrower = w(s, 'borrower')
 
