@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import { Client, dropsToXrp, rippleTimeToUnixTime } from 'xrpl'
 
 const NETWORK = 'wss://s.devnet.rippletest.net:51233/'
-const STATE_FILE = './state.json'
+const STATE_FILE = process.env.STATE_FILE ?? './state.json'
 
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) return null
@@ -112,8 +112,8 @@ async function main() {
       vaultId: state.vaultId,
       phase: currentPhase(state.phases),
       phases: state.phases,
-      assetsTotal: dropsToXrp(vault.AssetsTotal),
-      assetsAvailable: dropsToXrp(vault.AssetsAvailable),
+      assetsTotal: dropsToXrp(vault.AssetsTotal ?? '0'),
+      assetsAvailable: dropsToXrp(vault.AssetsAvailable ?? '0'),
       shareMptId: vault.ShareMPTID,
       sharesTotal: sharesTotal ? dropsToXrp(sharesTotal) : null,
       pps: sharesTotal && Number(sharesTotal) > 0 ? pps : null,

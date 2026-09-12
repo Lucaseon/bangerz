@@ -1,6 +1,7 @@
 export interface Campaign {
   id: string
   live: boolean // true: pulls real ledger data via /api/state. false: static seed, fills the grid.
+  stateFile?: string // which state*.json backs this campaign, when live. Defaults to state.json.
   title: string
   organiser: string
   venue: string
@@ -38,7 +39,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     id: 'subterranean-004',
-    live: false,
+    live: true,
+    stateFile: 'state3.json',
     title: 'Subterranean 004: Acid Warehouse',
     organiser: 'Subterranean Collective',
     venue: 'Halle des Douves',

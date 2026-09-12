@@ -1,24 +1,59 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import { Address } from '@/components/ui/Address'
 import { gate } from '@/lib/phase'
 import { formatAmount } from '@/lib/format'
-import type { Phase } from '@/lib/types'
+import { txUrl } from '@/lib/explorer'
+import type { ActionResult, Phase } from '@/lib/types'
 import type { Campaign } from '@/lib/campaigns'
 
 const QUICK_ADD = [50, 100, 150, 200, 250]
 
-export default function LendPanel({ campaign, phase }: { campaign: Campaign; phase: Phase }) {
+export default function LendPanel({
+  campaign,
+  phase,
+}: {
+  campaign: Campaign
+  phase: Phase
+}) {
+  const router = useRouter()
   const [amount, setAmount] = useState<number>(campaign.minLendXrp)
+  const [state, setState] = useState<'idle' | 'submitting'>('idle')
+  const [result, setResult] = useState<ActionResult | null>(null)
+
   const projectedYield = (amount * campaign.fixedYieldPct) / 100
   const totalPayout = amount + projectedYield
-  const { allowed, reason } = gate(phase, 'deposit')
+  const { allowed, reason } = campaign.live
+    ? gate(phase, 'deposit')
+    : { allowed: false, reason: 'This is a demo campaign — no vault is deployed behind it yet.' }
 
   const repaymentDate = new Date(campaign.eventDate)
   repaymentDate.setDate(repaymentDate.getDate() + campaign.tenorDays + 1)
   const repaymentStr = repaymentDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  async function lend() {
+    setState('submitting')
+    setResult(null)
+    try {
+      const res = await fetch('/api/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountXrp: amount, role: 'lender1', stateFile: campaign.stateFile ?? 'state.json' }),
+      })
+      const data: ActionResult = await res.json()
+      setResult(data)
+      router.refresh()
+    } finally {
+      setState('idle')
+    }
+  }
+
+  const tx = result?.newTxs?.[0]
+  const rejection = !tx && result?.newRejections?.[0]
 
   return (
     <Card className="flex flex-col gap-5">
@@ -77,7 +112,13 @@ export default function LendPanel({ campaign, phase }: { campaign: Campaign; pha
       </p>
 
       <div className="flex flex-col gap-2">
-        <Button variant="primary" disabled={!allowed} className="w-full">
+        <Button
+          variant="primary"
+          disabled={!allowed}
+          state={state === 'submitting' ? 'submitting' : 'idle'}
+          onClick={lend}
+          className="w-full"
+        >
           Lend {formatAmount(amount)} XRP
         </Button>
         {!allowed && <p className="label normal-case text-warn">{reason}</p>}
@@ -85,6 +126,29 @@ export default function LendPanel({ campaign, phase }: { campaign: Campaign; pha
           First-loss cover absorbs losses before yours. It does not remove your risk.
         </p>
       </div>
+
+      {result && (
+        <div className={`rounded-[12px] border-l-[3px] p-4 text-[13px] ${tx ? 'border-l-ok bg-surface' : 'border-l-bad bg-surface'}`}>
+          <p className="font-medium">{tx ? 'Submitted to the ledger' : 'Rejected by the protocol'}</p>
+          {(() => {
+            const row = tx || rejection || null
+            if (!row) return null
+            return (
+              <>
+                <p className="mono text-ink-muted mt-1">{row.code}</p>
+                {row.hash && (
+                  <a href={txUrl(row.hash)} target="_blank" rel="noopener noreferrer" className="underline mt-1 inline-block">
+                    View on explorer
+                  </a>
+                )}
+              </>
+            )
+          })()}
+          {result.output && !tx && !rejection && (
+            <p className="mono text-ink-muted mt-1 whitespace-pre-wrap">{result.output.slice(0, 300)}</p>
+          )}
+        </div>
+      )}
     </Card>
   )
 }

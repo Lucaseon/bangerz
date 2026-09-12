@@ -4,10 +4,10 @@ import CampaignCard from '@/components/campaign/CampaignCard'
 import { CAMPAIGNS } from '@/lib/campaigns'
 import type { LedgerSnapshot } from '@/lib/types'
 
-async function getRealState(): Promise<LedgerSnapshot | null> {
+async function getRealState(stateFile: string): Promise<LedgerSnapshot | null> {
   try {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${base}/api/state`, { cache: 'no-store' })
+    const res = await fetch(`${base}/api/state?state=${stateFile}`, { cache: 'no-store' })
     const data = await res.json()
     return data.error ? null : data
   } catch {
@@ -16,7 +16,10 @@ async function getRealState(): Promise<LedgerSnapshot | null> {
 }
 
 export default async function Marketplace() {
-  const live = await getRealState()
+  const liveCampaigns = CAMPAIGNS.filter((c) => c.live)
+  const stateFiles = [...new Set(liveCampaigns.map((c) => c.stateFile ?? 'state.json'))]
+  const snapshots = await Promise.all(stateFiles.map((f) => getRealState(f)))
+  const byStateFile = new Map(stateFiles.map((f, i) => [f, snapshots[i]]))
 
   return (
     <div className="min-h-screen">
@@ -55,8 +58,9 @@ export default async function Marketplace() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {CAMPAIGNS.map((c) => {
-            const cover = c.live && live?.broker ? Number(live.broker.coverAvailable) : c.targetXrp * 0.167
-            const deposits = c.live && live ? live.assetsTotal - (live.broker ? Number(live.broker.coverAvailable) : 0) : c.targetXrp * 0.55
+            const live = c.live ? byStateFile.get(c.stateFile ?? 'state.json') : null
+            const cover = live?.broker ? Number(live.broker.coverAvailable) : c.targetXrp * 0.167
+            const deposits = live ? live.assetsTotal - (live.broker ? Number(live.broker.coverAvailable) : 0) : c.targetXrp * 0.55
             return <CampaignCard key={c.id} campaign={c} coverXrp={cover} depositsXrp={deposits} />
           })}
         </div>

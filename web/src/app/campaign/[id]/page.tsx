@@ -17,10 +17,10 @@ const PHASE_CAPTION: Record<string, string> = {
   redemption: 'Withdrawals are open at the final price per share.',
 }
 
-async function getRealState(): Promise<LedgerSnapshot | null> {
+async function getRealState(stateFile: string): Promise<LedgerSnapshot | null> {
   try {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${base}/api/state`, { cache: 'no-store' })
+    const res = await fetch(`${base}/api/state?state=${stateFile}`, { cache: 'no-store' })
     const data = await res.json()
     return data.error ? null : data
   } catch {
@@ -33,7 +33,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const campaign = getCampaign(id)
   if (!campaign) notFound()
 
-  const live = campaign.live ? await getRealState() : null
+  const live = campaign.live ? await getRealState(campaign.stateFile ?? 'state.json') : null
   const phase: Phase = (live?.phase as Phase) ?? 'subscription'
   const coverXrp = live?.broker ? Number(live.broker.coverAvailable) : campaign.targetXrp * 0.167
   const depositsXrp = live ? live.assetsTotal - (live.broker ? Number(live.broker.coverAvailable) : 0) : campaign.targetXrp * 0.55

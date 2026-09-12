@@ -248,6 +248,22 @@ async function vault(client) {
   }, 'CoverDeposit')
 }
 
+// Parameterized VaultDeposit for the web front's Lend button — role and amount come
+// from env vars (set by run-action.mjs) instead of the fixed CFG.depositXrp, so a real
+// visitor-chosen amount hits the real ledger, success or rejection alike.
+async function depositCustom(client) {
+  const s = loadState()
+  const role = process.env.LEND_ROLE ?? 'lender1'
+  const amountXrp = process.env.LEND_AMOUNT_XRP ?? '60'
+  if (!s.wallets?.[role]) throw new Error(`Unknown lender role: ${role}`)
+  await send(client, w(s, role), {
+    TransactionType: 'VaultDeposit',
+    Account: s.wallets[role].address,
+    VaultID: s.vaultId,
+    Amount: xrpToDrops(amountXrp),
+  }, `VaultDeposit ${role} (web, ${amountXrp} XRP)`)
+}
+
 async function subscribe(client) {
   const s = loadState()
   for (const role of ['lender1', 'lender2']) {
@@ -547,6 +563,7 @@ const STEPS = {
   default: (c) => manage(c, LoanManageFlags.tfLoanDefault, 'LoanManage default'),
   status,
   'cover-topup': coverTopUp,
+  'deposit-custom': depositCustom,
   'invest2': investFresh,
   'pay2': payScheduled,
   'finish-phase4': finishPhase4,
