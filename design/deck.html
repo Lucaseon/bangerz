@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>bangerz pitch deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Raleway:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#040308;
+    --surface:#0d0b14;
+    --surface-raised:#161221;
+    --surface-inset:#1d1828;
+    --line:#241f33;
+    --ink:#ffffff;
+    --ink-muted:#9c96ad;
+    --ink-label:#7c7590;
+    --ink-faint:#5e5872;
+    --coral:#ee538a;
+    --magenta:#de54dd;
+    --violet:#a06fea;
+    --secured:#ee538a;
+    --community:#a06fea;
+    --due:#de54dd;
+    --ok:#3ed598;
+    --bad:#ff5a5a;
+    --warn:#ffb84d;
+    --grad-brand:linear-gradient(90deg,#EE538A 0%,#DE54DD 45%,#A06FEA 100%);
+    --grad-header:linear-gradient(105deg,#A03C61 0%,#9A3B98 45%,#704EA6 100%);
+    --font-display:'Syne',system-ui,sans-serif;
+    --font-sans:'Raleway',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    font-variant-numeric:tabular-nums;
+  }
+  ::selection{background:var(--magenta);color:#fff}
+
+  .deck{scroll-snap-type:y proximity}
+  section.slide{
+    min-height:100vh;
+    padding:56px max(16px,6vw);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    position:relative;
+    border-bottom:1px solid var(--line);
+    scroll-snap-align:start;
+  }
+  .inner{max-width:1040px;margin:0 auto;width:100%}
+
+  .eyebrow{
+    font-family:var(--font-sans);
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-label);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px;height:1px;
+    background:var(--grad-brand);
+    display:inline-block;
+  }
+
+  h1,h2{font-family:var(--font-display);text-wrap:balance;margin:0}
+  h1{font-size:clamp(40px,6.4vw,84px);font-weight:800;line-height:1.02;letter-spacing:-.01em}
+  h2{font-size:clamp(30px,4.4vw,52px);font-weight:700;line-height:1.06;letter-spacing:-.005em}
+  h1 .end, h2 .end{}
+  h1 .end::after, h2 .end::after{content:"."}
+
+  p.lede{font-size:19px;line-height:1.6;color:var(--ink-muted);max-width:640px;margin:20px 0 0}
+  p.body{font-size:15px;line-height:1.7;color:var(--ink-muted);max-width:620px}
+
+  .grad-text{
+    background:var(--grad-brand);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  .slide-index{
+    position:absolute; top:56px; right:max(16px,6vw);
+    font-family:var(--font-mono); font-size:12px; color:var(--ink-faint);
+  }
+
+  /* 01 cover */
+  #s1{
+    background:radial-gradient(120% 90% at 15% -10%, rgba(160,111,234,.28), transparent 60%),
+               radial-gradient(90% 70% at 100% 110%, rgba(238,83,138,.22), transparent 60%),
+               var(--bg);
+  }
+  .wordmark{
+    font-family:var(--font-display); font-weight:800; font-size:clamp(56px,11vw,140px);
+    letter-spacing:-0.02em; line-height:1;
+  }
+  .wordmark .z{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cover-meta{
+    display:flex; gap:28px; flex-wrap:wrap; margin-top:34px;
+    font-family:var(--font-mono); font-size:13px; color:var(--ink-muted);
+  }
+  .cover-meta b{color:var(--ink); font-weight:500}
+
+  /* generic components */
+  .card{
+    background:var(--surface-raised);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px;
+  }
+  .grid{display:grid; gap:20px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:860px){ .grid-2,.grid-3,.grid-4{grid-template-columns:1fr} }
+
+  .label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-label)}
+  .mono{font-family:var(--font-mono);font-size:13px;color:var(--ink-muted)}
+  .amount{font-family:var(--font-sans);font-weight:600;font-size:26px;letter-spacing:-.005em}
+  .amount .unit{font-size:.55em;color:var(--ink-muted);font-weight:400;margin-left:4px}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 14px; border-radius:999px;
+    font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  }
+  .pill-ok{background:rgba(62,213,152,.12); color:var(--ok)}
+  .pill-bad{background:rgba(255,90,90,.12); color:var(--bad)}
+  .pill-warn{background:rgba(255,184,77,.12); color:var(--warn)}
+
+  /* lifecycle strip */
+  .phasebar{display:flex; gap:8px; height:56px; border-radius:999px; overflow:hidden; background:var(--surface-raised)}
+  .phase{flex:1; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600}
+  .phase.done{background:var(--line); color:var(--ink-faint)}
+  .phase.active{background:var(--grad-brand); color:#fff}
+  .phase.upcoming{background:transparent; color:var(--ink-muted); border:1px solid var(--line)}
+
+  /* funding bar */
+  .fundbar{height:14px; border-radius:999px; overflow:hidden; display:flex; background:var(--surface-raised)}
+  .seg-secured{background:var(--secured)}
+  .seg-community{background:var(--community)}
+  .legend{display:flex; gap:22px; margin-top:10px; font-size:12px; color:var(--ink-muted)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+
+  /* roles diagram */
+  .roles{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+  @media (max-width:900px){ .roles{grid-template-columns:1fr 1fr} }
+  .role-card{padding:22px; border-radius:16px; background:var(--surface); border:1px solid var(--line)}
+  .role-card .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .role-card h3{font-family:var(--font-display); font-size:19px; margin:10px 0 8px}
+  .role-card p{font-size:13.5px; color:var(--ink-muted); line-height:1.55; margin:0}
+
+  /* guardrail / friction cards */
+  .friction{
+    border-left:3px solid var(--bad);
+    background:var(--surface-raised);
+    border-radius:12px;
+    padding:22px 24px;
+  }
+  .friction.fixed{border-left-color:var(--ok)}
+  .friction .head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .friction .code{font-family:var(--font-mono); font-size:13px; color:var(--warn); background:rgba(255,184,77,.1); padding:3px 8px; border-radius:6px}
+  .friction .why{margin-top:10px; font-size:14.5px; color:var(--ink-muted); line-height:1.6}
+  .friction .fix{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ok)}
+
+  .receipt{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 16px; border-radius:10px; background:var(--surface); border:1px solid var(--line);
+    font-family:var(--font-mono); font-size:12.5px; color:var(--ink-muted);
+  }
+  .receipt b{color:var(--ink); font-family:var(--font-sans); font-weight:500}
+
+  footer.slide-foot{
+    position:absolute; bottom:32px; left:max(16px,6vw); right:max(16px,6vw);
+    display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+  }
+
+  .arrow-flow{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--ink-muted)}
+  .arrow-flow span.step{color:var(--ink); font-weight:600}
+  .arrow-flow .sep{color:var(--ink-faint)}
+
+  a.link{color:var(--ink); text-decoration:underline; text-underline-offset:3px}
+
+  @media (prefers-reduced-motion:no-preference){
+    .fade-in{animation:fadeIn .8s ease-out both}
+    @keyframes fadeIn{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1 — Cover -->
+  <section class="slide" id="s1">
+    <div class="inner fade-in">
+      <div class="eyebrow">XRPL Lending Protocol Hackathon · Track 2 · Vanilla</div>
+      <div class="wordmark">bangerz<span class="z">.</span></div>
+      <p class="lede">Micro-crédit événementiel pour associations étudiantes, sur le XRP Ledger.</p>
+      <div class="cover-meta">
+        <span>DeVinci Blockchain × Ripple</span>
+        <span>·</span>
+        <span>Closed-ended Vault <b>XLS-65</b> + Lending Protocol <b>XLS-66</b> V1.1</span>
+        <span>·</span>
+        <span>Public XRPL Devnet</span>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>01 / 10</span></footer>
+  </section>
+
+  <!-- 2 — The problem -->
+  <section class="slide" id="s2">
+    <div class="inner">
+      <div class="eyebrow">The problem</div>
+      <h2><span class="grad-text">The venue wants its deposit</span> <span class="end">before</span> the first ticket is even sold</h2>
+      <p class="lede">A student association books a night, fronts the venue, sound and crew before a single euro of ticket revenue exists. The gap between committing to the event and collecting from it is where every small organiser gets stuck.</p>
+      <div class="grid grid-3" style="margin-top:40px">
+        <div class="card">
+          <div class="label">Cash flow</div>
+          <p class="body" style="margin-top:8px">Costs land first. Ticket revenue lands after doors open.</p>
+        </div>
+        <div class="card">
+          <div class="label">Who lends today</div>
+          <p class="body" style="margin-top:8px">Nobody, formally — a personal card, a favour, or the event doesn't happen.</p>
+        </div>
+        <div class="card">
+          <div class="label">What's missing</div>
+          <p class="body" style="margin-top:8px">A way for the association's own community to front the money and get paid back — auditably.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>02 / 10</span></footer>
+  </section>
+
+  <!-- 3 — The idea: lifecycle -->
+  <section class="slide" id="s3">
+    <div class="inner">
+      <div class="eyebrow">The idea</div>
+      <h2>One night<span class="end">'</span>s lifecycle is already a closed-ended vault<span class="end"></span></h2>
+      <p class="lede">Subscription is the presale. Investment is the night itself, running on borrowed capital. Redemption is the morning after, when ticket revenue pays everyone back. XLS-65's three phases aren't a metaphor here — they're the literal event calendar.</p>
+      <div style="margin-top:44px">
+        <div class="phasebar">
+          <div class="phase done">Subscription</div>
+          <div class="phase active">Investment</div>
+          <div class="phase upcoming">Redemption</div>
+        </div>
+        <div class="legend" style="margin-top:16px">
+          <span><span class="dot" style="background:var(--ink-faint)"></span>Community pledges before the event</span>
+          <span><span class="dot" style="background:var(--magenta)"></span>The loan runs while the night happens</span>
+          <span><span class="dot" style="background:var(--ink-muted)"></span>Ticket revenue settles the vault</span>
+        </div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>03 / 10</span></footer>
+  </section>
+
+  <!-- 4 — How it works: roles -->
+  <section class="slide" id="s4">
+    <div class="inner">
+      <div class="eyebrow">How it works</div>
+      <h2>Four roles, one vault<span class="end"></span></h2>
+      <div class="roles" style="margin-top:36px">
+        <div class="role-card">
+          <div class="tag" style="color:var(--community)">Lenders</div>
+          <h3>The community</h3>
+          <p>Deposit XRP via <code class="mono" style="font-size:12.5px">VaultDeposit</code>, receive vault shares (MPT). Withdraw principal + yield at redemption.</p>
+        </div>
+        <div class="role-card">
+          <div class="tag" style="color:var(--secured)">Broker</div>
+          <h3>bangerz</h3>
+          <p>Posts first-loss cover via <code class="mono" style="font-size:12.5px">LoanBrokerCoverDeposit</code> — absorbs losses before any lender does.</p>
+        </div>
+        <div class="role-card">
+          <div class="tag" style="color:var(--due)">Borrower</div>
+          <h3>The organiser</h3>
+          <p>Draws the principal through a double-signed <code class="mono" style="font-size:12.5px">LoanSet</code>, repays from ticket revenue via <code class="mono" style="font-size:12.5px">LoanPay</code>.</p>
+        </div>
+        <div class="role-card">
+          <div class="tag" style="color:var(--ink-muted)">Vault</div>
+          <h3>The pseudo-account</h3>
+          <p>Holds nothing itself decision-wise — a ledger object custodies the assets and mints/burns the shares.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>04 / 10</span></footer>
+  </section>
+
+  <!-- 5 — Live demo -->
+  <section class="slide" id="s5">
+    <div class="inner">
+      <div class="eyebrow">Live demo — what you're about to see</div>
+      <h2>Every step is a real transaction on Devnet<span class="end"></span></h2>
+      <p class="lede" style="margin-bottom:28px">Nothing in the console is mocked. Six real, verifiable moves:</p>
+      <div class="arrow-flow">
+        <span class="step">Deposit</span><span class="sep">→</span>
+        <span class="step">Rejected mid-phase</span><span class="sep">→</span>
+        <span class="step">Loan issued</span><span class="sep">→</span>
+        <span class="step">Repaid</span><span class="sep">→</span>
+        <span class="step">Price per share rises</span><span class="sep">→</span>
+        <span class="step">Redeemed</span>
+      </div>
+      <div class="grid grid-2" style="margin-top:32px">
+        <div class="card">
+          <div class="label">Funding — cover shown separately</div>
+          <div class="fundbar" style="margin-top:14px">
+            <div class="seg-secured" style="width:16.7%"></div>
+            <div class="seg-community" style="width:83.3%"></div>
+          </div>
+          <div class="legend"><span><span class="dot" style="background:var(--secured)"></span>20 XRP cover</span><span><span class="dot" style="background:var(--community)"></span>100 XRP lent</span></div>
+        </div>
+        <div class="card">
+          <div class="label">Price per share, before → after repayment</div>
+          <div class="amount" style="margin-top:10px">1.000000 <span style="color:var(--ink-faint)">→</span> 1.000001 <span style="color:var(--ok);font-size:16px">+0.0001%</span></div>
+          <p class="body" style="margin-top:8px;font-size:12.5px">Real interest, real ledger, compressed demo window.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>05 / 10</span></footer>
+  </section>
+
+  <!-- 6 — Friction 1 -->
+  <section class="slide" id="s6">
+    <div class="inner">
+      <div class="eyebrow">Friction, 1 of 3 — the one that cost the most time</div>
+      <h2>LoanPay fails silently unless you already know a flag exists<span class="end"></span></h2>
+      <div class="friction fixed" style="margin-top:30px">
+        <div class="head">
+          <span class="mono">LoanPay</span>
+          <span class="code">tecEXPIRED</span>
+        </div>
+        <p class="why">Once <code class="mono" style="font-size:13px">currentTime ≥ NextPaymentDueDate</code>, the transaction fails unless <code class="mono" style="font-size:13px">Flags: tfLoanLatePayment</code> is set. <b style="color:var(--ink)">GracePeriod does not extend the payment window</b> — it only delays when the broker can call impair/default. Neither the error message nor the xrpl.org reference pages say this; only XLS-66 §3.11.4.2 does.</p>
+        <div class="fix">Fix: always compute lateness against the live due date and set the flag — implemented in <span class="mono">payScheduled()</span>.</div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>06 / 10</span></footer>
+  </section>
+
+  <!-- 7 — Friction 2 -->
+  <section class="slide" id="s7">
+    <div class="inner">
+      <div class="eyebrow">Friction, 2 of 3</div>
+      <h2>Two more codes that don<span class="end">'</span>t point at their own cause</h2>
+      <div class="grid grid-2" style="margin-top:30px">
+        <div class="friction">
+          <div class="head"><span class="mono">LoanPay, late-flagged</span><span class="code">tecTOO_SOON</span></div>
+          <p class="why">Failed 8 seconds past the due date, flag already set. A ~20s margin past due made it succeed. Not in the documented failure list.</p>
+        </div>
+        <div class="friction">
+          <div class="head"><span class="mono">LoanSet, 2nd broker</span><span class="code">tecNO_PERMISSION</span></div>
+          <p class="why">Identical parameters to a working LoanSet elsewhere: correct owner roles, cover at threshold, no freeze flags. Reproducible, still unexplained.</p>
+        </div>
+      </div>
+      <p class="body" style="margin-top:24px">Both logged with full repro to the event organiser via the DevEx capture hook.</p>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>07 / 10</span></footer>
+  </section>
+
+  <!-- 8 — Friction 3 -->
+  <section class="slide" id="s8">
+    <div class="inner">
+      <div class="eyebrow">Friction, 3 of 3 — a wrong mental model, corrected</div>
+      <h2>tfVaultDonation doesn<span class="end">'</span>t exist</h2>
+      <p class="lede">Secondary planning material for this event called a <code class="mono" style="font-size:15px">tfVaultDonation</code> flag on <code class="mono" style="font-size:15px">VaultDeposit</code> mandatory for yield — "the number one pitfall to avoid."</p>
+      <div class="friction fixed" style="margin-top:24px">
+        <div class="head"><span class="mono">VaultDeposit</span><span class="pill pill-ok">Checked against xrpl.org</span></div>
+        <p class="why">xrpl.org's own reference page states it plainly: <i>"There are no flags defined for VaultDeposit transactions."</i> Confirmed absent from the XLS-65 spec and from <span class="mono">ripple-binary-codec</span>'s definitions too.</p>
+        <div class="fix">The real mechanism: LoanPay repayment raises AssetsTotal directly — cash-basis interest, no donation step required.</div>
+      </div>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>08 / 10</span></footer>
+  </section>
+
+  <!-- 9 — Contribution -->
+  <section class="slide" id="s9">
+    <div class="inner">
+      <div class="eyebrow">Contribution rendered</div>
+      <h2>We almost opened a PR. The diagnosis was worth more<span class="end"></span></h2>
+      <p class="lede">The counterparty-signing bug behind Friction #1's cousin (STX instead of CST hash prefix on LoanSet) got a full local fix and patch. Before filing a PR against xrpl.js, we cloned it to prepare one.</p>
+      <div class="grid grid-3" style="margin-top:30px">
+        <div class="card"><div class="label">Pinned for this event</div><div class="amount" style="margin-top:8px;font-size:20px">5.2.0-beta.0</div><div class="pill pill-bad" style="margin-top:10px">Has the bug</div></div>
+        <div class="card"><div class="label">Published one step later</div><div class="amount" style="margin-top:8px;font-size:20px">5.2.0-beta.1</div><div class="pill pill-ok" style="margin-top:10px">Already fixed</div></div>
+        <div class="card"><div class="label">Current stable</div><div class="amount" style="margin-top:8px;font-size:20px">5.2.0</div><div class="pill pill-ok" style="margin-top:10px">Already fixed</div></div>
+      </div>
+      <p class="body" style="margin-top:22px">Verified by diffing the packed npm tarballs of all three. No PR needed — the fix already shipped. What we handed the organiser instead: the exact version delta that would have saved every team hitting this wall.</p>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>09 / 10</span></footer>
+  </section>
+
+  <!-- 10 — Close -->
+  <section class="slide" id="s10">
+    <div class="inner">
+      <div class="eyebrow">Thank you</div>
+      <h2>Settled on the XRP Ledger<span class="end"></span></h2>
+      <p class="lede">Every transaction publicly verifiable. Every friction reported. Nothing in this deck is invented.</p>
+      <div class="grid grid-2" style="margin-top:36px">
+        <div class="receipt"><span>github.com/Lucaseon/bangerz</span><span>public</span></div>
+        <div class="receipt"><span>devnet.xrpl.org</span><span>explorer</span></div>
+      </div>
+      <p class="body" style="margin-top:30px">Team BANGERZ · XRPL Lending Protocol Hackathon · DeVinci Blockchain × Ripple</p>
+    </div>
+    <footer class="slide-foot"><span>bangerz</span><span>10 / 10</span></footer>
+  </section>
+
+</div>
+</body>
+</html>
