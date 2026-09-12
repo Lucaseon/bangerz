@@ -41,11 +41,21 @@ export interface LedgerSnapshot {
   sharesTotal: number | null
   pps: number | null
   broker: Broker | null
+  brokerAddress: string | null
+  borrowerAddress: string | null
+  lenders: LenderPosition[]
   loan: Loan | null
   loanId: string | null
   loanId2: string | null
   txs: TxRow[]
   rejections: RejectionRow[]
+}
+
+export interface LenderPosition {
+  role: string
+  address: string
+  shares: number
+  currentValue: string
 }
 
 export interface ActionResult {

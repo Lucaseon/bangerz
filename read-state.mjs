@@ -41,6 +41,20 @@ async function readLoan(client, loanId) {
   }
 }
 
+async function readShareBalance(client, mptIssuanceId, account) {
+  if (!mptIssuanceId) return '0'
+  try {
+    const res = await client.request({
+      command: 'ledger_entry',
+      mptoken: { mpt_issuance_id: mptIssuanceId, account },
+      ledger_index: 'validated',
+    })
+    return res.result.node.MPTAmount ?? '0'
+  } catch {
+    return '0'
+  }
+}
+
 async function main() {
   const state = loadState()
   if (!state?.vaultId) {
@@ -75,6 +89,23 @@ async function main() {
       }
     }
 
+    const pps = sharesTotal && Number(sharesTotal) > 0
+      ? Number(vault.AssetsTotal) / Number(sharesTotal)
+      : 1
+
+    const lenders = []
+    for (const role of ['lender1', 'lender2']) {
+      const addr = state.wallets?.[role]?.address
+      if (!addr) continue
+      const shares = await readShareBalance(client, vault.ShareMPTID, addr)
+      lenders.push({
+        role,
+        address: addr,
+        shares: dropsToXrp(shares),
+        currentValue: (Number(shares) * pps / 1_000_000).toFixed(6),
+      })
+    }
+
     const view = {
       network: NETWORK,
       explorer: 'https://devnet.xrpl.org',
@@ -85,10 +116,11 @@ async function main() {
       assetsAvailable: dropsToXrp(vault.AssetsAvailable),
       shareMptId: vault.ShareMPTID,
       sharesTotal: sharesTotal ? dropsToXrp(sharesTotal) : null,
-      pps: sharesTotal && Number(sharesTotal) > 0
-        ? Number(vault.AssetsTotal) / Number(sharesTotal)
-        : null,
+      pps: sharesTotal && Number(sharesTotal) > 0 ? pps : null,
       broker,
+      brokerAddress: state.wallets?.broker?.address ?? null,
+      borrowerAddress: state.wallets?.borrower?.address ?? null,
+      lenders,
       loan: await readLoan(client, state.loanId),
       loanId: state.loanId ?? null,
       loanId2: state.loanId2 ?? null,
