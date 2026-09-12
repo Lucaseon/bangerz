@@ -58,14 +58,17 @@ function signLoanSetByCounterparty(wallet, transaction) {
 // ---------------------------------------------------------------- CONFIG
 
 const NETWORK = 'wss://s.devnet.rippletest.net:51233/'
-const STATE_FILE = './state.json'
+// STATE_FILE en variable d'env : permet de faire tourner un second vault (scénario
+// impair/default) en parallèle du premier, sans toucher son state.json.
+const STATE_FILE = process.env.STATE_FILE ?? './state.json'
 const TX_LINKS_FILE = './tx-links.md'
 
 const CFG = {
   // Fenêtres du vault closed-ended, en minutes à partir du VaultCreate.
   // /!\ IMMUABLE une fois le vault créé. Le Devnet suit l'heure réelle.
-  subscriptionMinutes: 20,   // durée de la phase Subscription
-  investmentMinutes: 180,     // durée de la phase Investment
+  // Surchargeables par env pour un second vault à fenêtres courtes.
+  subscriptionMinutes: Number(process.env.SUBSCRIPTION_MINUTES) || 20,   // durée de la phase Subscription
+  investmentMinutes: Number(process.env.INVESTMENT_MINUTES) || 180,     // durée de la phase Investment
 
   depositXrp: '60',          // par prêteur
   coverXrp: '20',            // first-loss capital du broker
@@ -442,24 +445,24 @@ async function finishPhase4(client) {
 
 // --- les trois rejets exigés par le minimum bar Track 2 ---
 
-async function rejectSub(client) {
+async function rejectSub(client, label = 'LoanSet pendant Subscription') {
   const s = loadState()
   const prepared = await client.autofill(buildLoanSet(s))
   const first = w(s, 'broker').sign(prepared)
   const cosigned = signLoanSetByCounterparty(w(s, 'borrower'), first.tx_blob)
   try {
     const res = await client.submitAndWait(cosigned.tx_blob)
-    console.log(`     LoanSet en Subscription -> ${res.result.meta?.TransactionResult}`)
+    console.log(`     ${label} -> ${res.result.meta?.TransactionResult}`)
     const st = loadState()
     st.rejections = st.rejections ?? []
     st.rejections.push({
-      label: 'LoanSet pendant Subscription',
+      label,
       code: res.result.meta?.TransactionResult,
       hash: res.result.hash,
     })
     saveState(st)
   } catch (err) {
-    console.log(`OK   rejet attendu · LoanSet/Subscription ${err.data?.error_message ?? err.message}`)
+    console.log(`OK   rejet attendu · ${label} ${err.data?.error_message ?? err.message}`)
   }
 }
 
@@ -481,7 +484,7 @@ async function rejectInv(client) {
 }
 
 async function rejectRed(client) {
-  await rejectSub(client) // même transaction, autre phase
+  await rejectSub(client, 'LoanSet pendant Redemption') // même transaction, autre phase
 }
 
 async function status(client) {
