@@ -1,3 +1,7 @@
+**Track :** 2 (closed-ended vault) · **Flavour :** Vanilla · **Environnement :** Public XRPL Devnet, `wss://s.devnet.rippletest.net:51233/` · **Librairie :** `xrpl@5.2.0-beta.1` (requise par le brief — voir la dernière entrée pour l'historique avec `5.2.0-beta.0`)
+
+---
+
 ## [client libraries] signLoanSetByCounterparty produit une signature refusée
 Où : xrpl@5.2.0-beta.0, Wallet/counterpartySigner.js
 Ce que j'essayais de faire : originer un prêt à double signature
@@ -53,7 +57,7 @@ Correctif proposé : un des deux codes génériques (`tecEXPIRED`/`tecTOO_SOON`)
 
 ---
 
-## [protocol] LoanPay exige un flag `tfLoanLatePayment` non documenté hors du spec GitHub
+## [documentation/tutorials] LoanPay exige un flag `tfLoanLatePayment` non documenté hors du spec GitHub
 Où : `LoanPay`, xrpl.js `LoanPayFlags.tfLoanLatePayment` (`0x00040000`)
 Ce que j'essayais de faire : rembourser une échéance de prêt après sa date d'échéance
 Attendu vs obtenu : `tecEXPIRED` dès que `currentTime >= NextPaymentDueDate` sans le flag posé (hash `54F874DC1208D1729900816DEC10A01F85C10A36A6C0633362E05E4DECB07A83`) ; corrigé, succès immédiat (hash `A26E1AEEF41BE550D67738BA78A238FE6254A0FA4A077DA6A036AEF5EC274EFF`)
@@ -63,7 +67,7 @@ Correctif proposé : documenter la règle sur les pages xrpl.org `LoanPay` et `L
 
 ---
 
-## [protocol] tecTOO_SOON non documenté, même avec le flag de retard posé
+## [documentation/tutorials] tecTOO_SOON non documenté, même avec le flag de retard posé
 Où : `LoanPay`, juste après `NextPaymentDueDate`
 Ce que j'essayais de faire : rembourser une échéance ~8 secondes après son échéance, flag `tfLoanLatePayment` déjà posé
 Attendu vs obtenu : `tecTOO_SOON` (hash `EF8FD8AEEB59814A56A70B98D7C2639CED6F69A8D1C2082F965C23196B0F29A7`) ; une marge d'environ 20 secondes après l'échéance a suffi à faire réussir le même paiement
@@ -72,7 +76,7 @@ Correctif proposé : documenter la marge réelle exigée (probablement liée au 
 
 ---
 
-## [documentation] `tfVaultDonation` n'existe pas
+## [documentation/tutorials] `tfVaultDonation` n'existe pas
 Où : `VaultDeposit`
 Ce que j'essayais de faire : injecter de l'intérêt dans le vault, comme décrit par du matériel de planification secondaire pour l'event
 Attendu vs obtenu : xrpl.org (page `VaultDeposit`) indique explicitement « There are no flags defined for VaultDeposit transactions » — confirmé absent aussi du spec XLS-65 et du tutoriel « Deposit into a Vault »
@@ -81,7 +85,7 @@ Correctif proposé : le mécanisme réel (le remboursement `LoanPay` fait monter
 
 ---
 
-## [protocol] tecNO_PERMISSION non résolu sur un second LoanSet
+## [other] tecNO_PERMISSION non résolu sur un second LoanSet
 Où : `LoanSet`, second vault/broker
 Ce que j'essayais de faire : créer un second prêt sur un second vault, avec des paramètres structurellement identiques à un `LoanSet` qui avait réussi ailleurs (mêmes rôles broker/owner, cover au seuil exact des 20 %, aucun flag freeze)
 Attendu vs obtenu : `tecNO_PERMISSION` de façon reproductible (hashes `0969BA453CA6E819D5FEE879060FE2917E7A832E3D24401D35E6DE4754569CAB`, `75DFC340C7A1699AA4D2F669B7C2385817AF59A8FA6173BE2B9F228DE1F905C2`, `42EFEA7E0D75C3F7B4BCB7B381A3F285EA3A7A34C374AE645CFDFF6730C738B1`)
@@ -90,12 +94,13 @@ Correctif proposé : aucun trouvé — signalé tel quel à l'organisateur, caus
 
 ---
 
-## [other] Le bug de signature de contrepartie n'a pas besoin de PR — déjà corrigé une version plus tard
-Où : `xrpl@5.2.0-beta.0` vs `xrpl@5.2.0-beta.1` / `xrpl@5.2.0`
-Ce que j'essayais de faire : préparer une PR sur `xrpl.js` pour le bug STX/CST (voir première entrée)
-Obtenu : en clonant `xrpl.js` pour préparer la PR, le correctif était déjà présent sur `main`. En téléchargeant et diffant les tarballs npm des versions publiées, `xrpl@5.2.0-beta.1` et la stable `xrpl@5.2.0` (toutes deux déjà publiées) appellent déjà `computeSignature` avec le rôle `'counterparty'` correct. Seule la version épinglée pour cet event, `5.2.0-beta.0`, a le bug.
-Sévérité : aucune (aucune action requise sur le repo).
-Correctif proposé : signaler à l'organisateur que la version recommandée pour cet event pourrait être mise à jour vers `5.2.0-beta.1` ou `5.2.0` pour épargner ce bug à toute équipe utilisant le flux à double signature.
+## [other] On avait épinglé la mauvaise version dès le départ — le brief demande `5.2.0-beta.1`, pas `beta.0`
+Où : `package.json`, tout le projet
+Ce que j'essayais de faire : préparer une PR sur `xrpl.js` pour le bug STX/CST (première entrée), après avoir tourné sur `xrpl@5.2.0-beta.0` (repris d'un doc de planification secondaire) pendant la majeure partie du build
+Obtenu : en clonant `xrpl.js` pour préparer la PR, le correctif était déjà présent sur `main`. En téléchargeant et diffant les tarballs npm publiés, `xrpl@5.2.0-beta.1` et la stable `xrpl@5.2.0` appellent déjà `computeSignature` avec le rôle `'counterparty'` correct. En relisant le brief officiel : Track 2 exige explicitement `xrpl.js@5.2.0-beta.1` — la version qu'on aurait dû utiliser depuis le début.
+Sévérité : aucune sur le protocole/la lib elle-même — mais ça a coûté du temps de debug sur un bug qui n'existe pas dans la version requise.
+Correctif appliqué : upgrade vers `xrpl@5.2.0-beta.1`, suppression des deux contournements (l'implémentation locale et le patch `patch-package`), `seed.mjs` importe désormais `signLoanSetByCounterparty` directement depuis `xrpl`. Testé : tout le projet (script + front) fonctionne à l'identique sur la version requise.
+Leçon : vérifier la version exacte imposée par le brief avant de reprendre celle d'un doc de planification secondaire, aussi précis paraisse-t-il.
 
 ---
 

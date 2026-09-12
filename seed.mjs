@@ -1,6 +1,6 @@
 /**
  * BANGERZ — seed Track 2 (vault closed-ended, XLS-65 + XLS-66)
- * xrpl@5.2.0-beta.0 · Public XRPL Devnet
+ * xrpl@5.2.0-beta.1 · Public XRPL Devnet
  *
  * Usage (une étape à la fois, les phases sont gatées par l'heure réelle) :
  *   node seed.mjs accounts     # 4 comptes financés au faucet
@@ -30,30 +30,12 @@ import {
   LoanPayFlags,
   unixTimeToRippleTime,
   rippleTimeToUnixTime,
+  // Native since xrpl@5.2.0-beta.1 (the version this event requires). On the previously
+  // (wrongly) pinned 5.2.0-beta.0, this signed with the plain transaction hash prefix (STX)
+  // instead of the counterparty prefix (CST) that XLS-66 requires, so every double-signed
+  // LoanSet was rejected — see FEEDBACK.md. Upgrading removed the need for a local workaround.
+  signLoanSetByCounterparty,
 } from 'xrpl'
-import { encode, decode, encodeForSigningCounterparty } from 'ripple-binary-codec'
-import { sign } from 'ripple-keypairs'
-
-/**
- * Fix pour xrpl@5.2.0-beta.0 :
- * Dans xrpl, computeSignature appelle encodeForSigning (préfixe HashPrefix.transactionSig = 0x53545800)
- * au lieu de encodeForSigningCounterparty (préfixe HashPrefix.counterpartyTransactionSig = 0x43535400).
- * Ce helper encode correctement pour la contrepartie.
- */
-function signLoanSetByCounterparty(wallet, transaction) {
-  const tx = typeof transaction === 'string' ? decode(transaction) : JSON.parse(JSON.stringify(transaction))
-  const counterpartyHex = encodeForSigningCounterparty(tx)
-  const counterpartySig = sign(counterpartyHex, wallet.privateKey)
-  tx.CounterpartySignature = {
-    SigningPubKey: wallet.publicKey,
-    TxnSignature: counterpartySig,
-  }
-  const serialized = encode(tx)
-  return {
-    tx,
-    tx_blob: serialized,
-  }
-}
 
 // ---------------------------------------------------------------- CONFIG
 

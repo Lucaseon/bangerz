@@ -48,7 +48,7 @@ Réseau   : Public XRPL Devnet
 WSS      : wss://s.devnet.rippletest.net:51233/
 Faucet   : https://faucet.devnet.rippletest.net/accounts
 Explorer : https://devnet.xrpl.org
-Lib      : xrpl@5.2.0-beta.0 (exactement, patchée — voir §5)
+Lib      : xrpl@5.2.0-beta.1 (exactement — requis par le brief officiel pour Track 2, voir §5)
 Projet   : C:\Users\lucas\Documents\Hackathon-XRP\bangerz
 Repo     : https://github.com/Lucaseon/bangerz (public)
 ```
@@ -76,15 +76,15 @@ Rejets déjà capturés :
 
 ---
 
-## 5. Le bug xrpl.js trouvé et corrigé — l'atout du projet
+## 5. Le bug xrpl.js — trouvé, contourné, puis résolu par la bonne version
 
-`signLoanSetByCounterparty` de `xrpl@5.2.0-beta.0` produisait une signature systématiquement refusée : `fails local checks: Counterparty: Invalid signature`.
+On a tourné sur `xrpl@5.2.0-beta.0` pendant une bonne partie du build (repris d'un doc de planification secondaire, pas du brief officiel). Dessus, `signLoanSetByCounterparty` produisait une signature systématiquement refusée : `fails local checks: Counterparty: Invalid signature`.
 
-**Cause racine** : `computeSignature` appelle `encodeForSigning`, qui préfixe avec `HashPrefix.transactionSig` (`0x53545800`, « STX »). XLS-66 et rippled exigent pour la contrepartie `HashPrefix.counterpartyTransactionSig` (`0x43535400`, « CST »). La fonction correcte, `encodeForSigningCounterparty`, existe déjà dans `ripple-binary-codec` mais n'est jamais appelée.
+**Cause racine** : `computeSignature` appelait `encodeForSigning`, qui préfixe avec `HashPrefix.transactionSig` (`0x53545800`, « STX »). XLS-66 et rippled exigent pour la contrepartie `HashPrefix.counterpartyTransactionSig` (`0x43535400`, « CST »).
 
-**Corrigé à deux endroits** :
-1. Implémentation locale dans `seed.mjs`, utilisant `encodeForSigningCounterparty` + `sign` de `ripple-keypairs`.
-2. Patch de `node_modules/xrpl/dist/npm/Wallet/counterpartySigner.js`, figé via `patch-package` dans `patches/xrpl+5.2.0-beta.0.patch`, appliqué au `postinstall`.
+**Contourné à deux endroits** (implémentation locale dans `seed.mjs`, puis un patch `patch-package`), avant de relire le vrai brief : Track 2 exige explicitement `xrpl.js@5.2.0-beta.1`, pas `beta.0`. En clonant `xrpl.js` pour préparer une PR, le correctif était déjà présent en amont — `5.2.0-beta.1` (et la stable `5.2.0`) appellent déjà `computeSignature` avec le rôle `'counterparty'` correct.
+
+**Résolu proprement** : upgrade vers `xrpl@5.2.0-beta.1` (la version requise), les deux contournements supprimés, `seed.mjs` importe `signLoanSetByCounterparty` directement depuis `xrpl`. Le détail complet, y compris la découverte de l'erreur de version elle-même, est dans `FEEDBACK.md`.
 
 ---
 
@@ -160,7 +160,7 @@ Quatre éléments, pas un de plus. Lit `state.json` et le ledger, pas de base de
 
 1. **[client libraries, bloquant]** `signLoanSetByCounterparty` utilise le mauvais préfixe de hash. Cause racine, repro et patch disponibles.
 2. **[UX]** `tecEXPIRED` et `tecTOO_SOON` pour des rejets dont la cause réelle est la phase du vault. Aucun des deux ne le dit.
-3. **[documentation]** `tfVaultDonation` est documenté par Ripple pour l'injection d'intérêts en closed-ended, mais n'existe pas dans `xrpl@5.2.0-beta.0`. `VaultDeposit` n'y expose que `VaultID` et `Amount`.
+3. **[documentation/tutorials]** `tfVaultDonation` est référencé par du matériel de planification secondaire pour l'injection d'intérêts en closed-ended, mais n'existe dans aucune version testée (`5.2.0-beta.0` comme la `5.2.0-beta.1` requise), ni dans le spec XLS-65, ni sur xrpl.org. `VaultDeposit` n'expose que `VaultID` et `Amount`.
 4. **[missing primitive]** Le minimum bar demande « execute a drawdown » alors que V1.1 n'expose aucune transaction dédiée. Le principal part avec `LoanSet`.
 
 Format attendu par entrée, calé sur le barème (« cite the exact spot, propose the fix ») : catégorie, titre, où exactement, ce qu'on tentait, attendu vs obtenu avec le code d'erreur, repro ou lien de transaction, sévérité, lib et version, **correctif proposé**.
