@@ -94,6 +94,17 @@ Correctif proposé : aucun trouvé — signalé tel quel à l'organisateur, caus
 
 ---
 
+## [documentation/tutorials] LossUnrealized doit être soustrait de AssetsTotal pour calculer le vrai PPS
+Où : objet `Vault` (ledger entry), calcul du price-per-share pour un retrait
+Ce que j'essayais de faire : retirer la position complète (capital + rendement) de deux prêteurs via `VaultWithdraw`, montant calculé comme `parts détenues × (AssetsTotal / SharesTotal)`
+Attendu vs obtenu : `tecINSUFFICIENT_FUNDS` sur les deux retraits (hashes `D227C5569DF84334DD481765C4654984FA3C3D38A22F92BB82CBF81912F1B048`, `3A2FFC9FF2E3B97A9ABEB11DD35F5A921EF2394F32753ABE135DCE45BF32C52B`) alors que le calcul semblait correct
+Cause trouvée : le vault avait un prêt jamais remboursé (jamais mis en `impair`/`default`, juste délinquant), et son objet `Vault` exposait `LossUnrealized: 100000000` (100 XRP), exactement le principal de ce prêt. Vérifié à la goutte près : `AssetsTotal (120.000239) - LossUnrealized (100) = AssetsAvailable (20.000239)`. Le PPS réellement disponible aux prêteurs doit donc se calculer sur `(AssetsTotal - LossUnrealized) / SharesTotal`, pas sur `AssetsTotal / SharesTotal` seul.
+Corrigé, succès immédiat : hashes `8D80832082FC1BC0C65941DE92AE9B19B16DC6A792BF3C0CA79F7B7C6E4E906E`, `FCE3B923C2F9456EFB512AF90850661E185076FB225F7E7B6A5DDC2CE8DBFA92`
+Sévérité : bloquant (calcul silencieusement faux, aucun message d'erreur ne pointe vers `LossUnrealized`). Lib : `xrpl@5.2.0-beta.1`, XLS-65.
+Correctif proposé : documenter explicitement que la valeur nette réellement redistribuable aux détenteurs de parts est `AssetsTotal - LossUnrealized`, pas `AssetsTotal` seul — la page de référence `Vault` (ledger entry) sur xrpl.org ne fait pas ce lien alors que c'est la source silencieuse d'un calcul de PPS faux.
+
+---
+
 ## [other] On avait épinglé la mauvaise version dès le départ — le brief demande `5.2.0-beta.1`, pas `beta.0`
 Où : `package.json`, tout le projet
 Ce que j'essayais de faire : préparer une PR sur `xrpl.js` pour le bug STX/CST (première entrée), après avoir tourné sur `xrpl@5.2.0-beta.0` (repris d'un doc de planification secondaire) pendant la majeure partie du build
