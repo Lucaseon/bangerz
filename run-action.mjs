@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process'
 const STATE_FILE = process.env.STATE_FILE ?? './state.json'
 const ALLOWED_STEPS = new Set([
   'pay', 'pay2', 'impair', 'default', 'redeem', 'reject-red', 'reject-inv', 'reject-sub',
-  'deposit-custom', 'invest',
+  'deposit-custom', 'invest', 'redeem-all',
 ])
 
 const step = process.argv[2]

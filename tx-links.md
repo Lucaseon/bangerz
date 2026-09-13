@@ -35,3 +35,5 @@
 - VaultCreate (closed) · https://devnet.xrpl.org/transactions/DFBA6239A05ADC6C4765FB0E2B100D59B4AD40CC03D8D77D62BCB5415A158F7F
 - LoanBrokerSet · https://devnet.xrpl.org/transactions/05E77166B69E1DD1F3297FE1E08A89ACCA9B713E130634168376077957706AEF
 - CoverDeposit · https://devnet.xrpl.org/transactions/4A4FA78FA7A927B4CDB8F7EB15C67DF9F61827EBB453A99768917A3DB805C9D5
+- VaultWithdraw lender1 (capital + yield) · https://devnet.xrpl.org/transactions/8D80832082FC1BC0C65941DE92AE9B19B16DC6A792BF3C0CA79F7B7C6E4E906E
+- VaultWithdraw lender2 (capital + yield) · https://devnet.xrpl.org/transactions/FCE3B923C2F9456EFB512AF90850661E185076FB225F7E7B6A5DDC2CE8DBFA92

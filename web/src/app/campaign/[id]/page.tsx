@@ -40,6 +40,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const depositsXrp = live ? live.assetsTotal - (live.broker ? Number(live.broker.coverAvailable) : 0) : campaign.targetXrp * 0.55
   const loanSettled = live?.loan?.settled ?? false
   const loanAlreadyOriginated = Boolean(live?.loanId || live?.loanId2)
+  const alreadyRedeemed = phase === 'redemption'
+    && live !== null
+    && (live.lenders.length === 0 || live.lenders.every((l) => l.shares < 0.001))
 
   const date = new Date(campaign.eventDate)
   const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -103,6 +106,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               phase={phase}
               fixedYieldPct={campaign.fixedYieldPct}
               loanAlreadyOriginated={loanAlreadyOriginated}
+              alreadyRedeemed={alreadyRedeemed}
             />
           )}
         </div>

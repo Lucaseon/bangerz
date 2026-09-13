@@ -329,6 +329,69 @@ async function redeem(client) {
   }
 }
 
+// Withdraws each lender's FULL current position (capital + accrued yield), computed
+// from their live MPT share balance × the vault's current price-per-share — not the
+// fixed CFG.depositXrp the original `redeem` step uses. A fixed-amount withdrawal
+// under-redeems once PPS has risen above 1 (the yield fraction is left as unredeemed
+// dust in shares), which is exactly what happened on the first vault's redemption.
+// This is the organiser-facing "repay the lenders" action for the admin panel — it
+// works for any campaign's two lenders, whatever they actually hold.
+async function redeemAll(client) {
+  const s = loadState()
+
+  const vaultRes = await client.request({ command: 'ledger_entry', vault: s.vaultId, ledger_index: 'validated' })
+  const vault = vaultRes.result.node
+
+  let sharesTotal = null
+  if (vault.ShareMPTID) {
+    try {
+      const r = await client.request({ command: 'ledger_entry', mpt_issuance: vault.ShareMPTID, ledger_index: 'validated' })
+      sharesTotal = r.result.node.OutstandingAmount
+    } catch {
+      sharesTotal = null
+    }
+  }
+  // Net asset value backing shares is AssetsTotal minus LossUnrealized, not AssetsTotal
+  // alone: a vault with a still-delinquent loan (never impaired/defaulted, just unpaid)
+  // carries that principal in LossUnrealized, and AssetsTotal - LossUnrealized is
+  // exactly AssetsAvailable — using raw AssetsTotal for PPS overstates what's actually
+  // redeemable and trips tecINSUFFICIENT_FUNDS on withdrawal. Confirmed against this
+  // vault's real numbers, see FEEDBACK.md.
+  const netAssets = Number(vault.AssetsTotal) - Number(vault.LossUnrealized ?? 0)
+  const pps = sharesTotal && Number(sharesTotal) > 0 ? netAssets / Number(sharesTotal) : 1
+
+  for (const role of ['lender1', 'lender2']) {
+    const addr = s.wallets?.[role]?.address
+    if (!addr) continue
+
+    let shareBalance = '0'
+    try {
+      const res = await client.request({
+        command: 'ledger_entry',
+        mptoken: { mpt_issuance_id: vault.ShareMPTID, account: addr },
+        ledger_index: 'validated',
+      })
+      shareBalance = res.result.node.MPTAmount ?? '0'
+    } catch {
+      shareBalance = '0'
+    }
+    if (Number(shareBalance) <= 0) {
+      console.log(`skip ${role} · pas de parts à retirer`)
+      continue
+    }
+
+    // Floor, never round up: asking for a hair more than the share value than the
+    // vault can actually pay out is a real way to get a spurious rejection.
+    const withdrawDrops = Math.floor(Number(shareBalance) * pps).toString()
+    await send(client, w(s, role), {
+      TransactionType: 'VaultWithdraw',
+      Account: addr,
+      VaultID: s.vaultId,
+      Amount: withdrawDrops,
+    }, `VaultWithdraw ${role} (capital + yield)`)
+  }
+}
+
 async function manage(client, flag, label) {
   const s = loadState()
   await send(client, w(s, 'broker'), {
@@ -554,6 +617,7 @@ const STEPS = {
   status,
   'cover-topup': coverTopUp,
   'deposit-custom': depositCustom,
+  'redeem-all': redeemAll,
   'invest2': investFresh,
   'pay2': payScheduled,
   'finish-phase4': finishPhase4,

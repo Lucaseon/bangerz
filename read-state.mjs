@@ -89,8 +89,12 @@ async function main() {
       }
     }
 
+    // See seed.mjs's redeemAll() for why this subtracts LossUnrealized: net asset value
+    // backing shares is AssetsTotal minus LossUnrealized (a still-delinquent, unpaid
+    // loan's principal), not raw AssetsTotal — the difference is exactly AssetsAvailable.
+    const netAssets = Number(vault.AssetsTotal) - Number(vault.LossUnrealized ?? 0)
     const pps = sharesTotal && Number(sharesTotal) > 0
-      ? Number(vault.AssetsTotal) / Number(sharesTotal)
+      ? netAssets / Number(sharesTotal)
       : 1
 
     const lenders = []
