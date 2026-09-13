@@ -49,7 +49,7 @@ export const CAMPAIGNS: Campaign[] = [
     fixedYieldPct: 9,
     tenorDays: 2,
     targetXrp: 200,
-    minLendXrp: 50,
+    minLendXrp: 10,
     gradientFrom: '#A06FEA',
     gradientTo: '#DE54DD',
     about: 'A warehouse acid night, third edition of a running series. This vault fronts the sound rig deposit.',
