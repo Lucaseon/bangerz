@@ -20,7 +20,17 @@ export async function POST(request: Request) {
     timeout: 120_000,
   })
 
-  const lastLine = res.stdout.trim().split('\n').pop() ?? '{}'
+  if (res.error || res.signal) {
+    // spawnSync sets these when the child never ran or was killed (timeout, OOM) —
+    // stdout/stderr are often empty in that case, so surface the real reason instead
+    // of a bare "campaign creation failed" with no clue why.
+    return Response.json({
+      error: 'campaign creation failed to run',
+      detail: res.error?.message ?? `killed by signal ${res.signal}`,
+    }, { status: 500 })
+  }
+
+  const lastLine = (res.stdout ?? '').trim().split('\n').pop() ?? '{}'
   try {
     const data = JSON.parse(lastLine)
     if (data.error) {
@@ -28,6 +38,6 @@ export async function POST(request: Request) {
     }
     return Response.json(data)
   } catch {
-    return Response.json({ error: 'campaign creation failed', detail: res.stderr || res.stdout }, { status: 500 })
+    return Response.json({ error: 'campaign creation failed', detail: res.stderr || res.stdout || '(no output)' }, { status: 500 })
   }
 }
