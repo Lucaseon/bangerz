@@ -6,9 +6,11 @@ const REPO_ROOT = path.resolve(process.cwd(), '..')
 // resolve "read-state.mjs" as a bundled module — it's a child_process argument, not an import.
 const SCRIPT = ['read-state', '.mjs'].join('')
 
-// Only these are ever valid — never let a query param control an arbitrary env value
-// that gets passed straight to a spawned process.
-const ALLOWED_STATE_FILES = new Set(['state.json', 'state2.json', 'state3.json'])
+// Matches state.json, state2.json, state3.json, and any state-<slug>.json created by
+// create-campaign.mjs. Never a bare passthrough — this is a query param that ends up
+// in an env var passed to a spawned process, so it must be validated against a pattern,
+// not just checked for existence.
+const STATE_FILE_PATTERN = /^state(-[a-z0-9-]+|[0-9]*)\.json$/
 
 // read-state.mjs opens a fresh WebSocket connection to Devnet every call (~3s). Every
 // page (/, /campaign/[id], /dashboard, /positions) fetches this on every navigation,
@@ -21,7 +23,7 @@ const cache = new Map<string, { data: unknown; at: number }>()
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const requested = searchParams.get('state') ?? 'state.json'
-  const stateFile = ALLOWED_STATE_FILES.has(requested) ? requested : 'state.json'
+  const stateFile = STATE_FILE_PATTERN.test(requested) ? requested : 'state.json'
 
   const cached = cache.get(stateFile)
   if (cached && Date.now() - cached.at < CACHE_MS) {

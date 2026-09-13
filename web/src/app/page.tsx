@@ -1,7 +1,7 @@
 import Nav from '@/components/brand/Nav'
 import HeaderBand from '@/components/brand/HeaderBand'
 import CampaignCard from '@/components/campaign/CampaignCard'
-import { CAMPAIGNS } from '@/lib/campaigns'
+import { getAllCampaigns } from '@/lib/campaigns'
 import type { LedgerSnapshot } from '@/lib/types'
 
 async function getRealState(stateFile: string): Promise<LedgerSnapshot | null> {
@@ -16,6 +16,7 @@ async function getRealState(stateFile: string): Promise<LedgerSnapshot | null> {
 }
 
 export default async function Marketplace() {
+  const CAMPAIGNS = getAllCampaigns()
   const liveCampaigns = CAMPAIGNS.filter((c) => c.live)
   const stateFiles = [...new Set(liveCampaigns.map((c) => c.stateFile ?? 'state.json'))]
   const snapshots = await Promise.all(stateFiles.map((f) => getRealState(f)))

@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 export interface Campaign {
   id: string
   live: boolean // true: pulls real ledger data via /api/state. false: static seed, fills the grid.
@@ -16,6 +19,7 @@ export interface Campaign {
   about: string
   whatItFunds: string
   whatLendersShouldKnow: string
+  createdAt?: string
 }
 
 export const CAMPAIGNS: Campaign[] = [
@@ -76,6 +80,23 @@ export const CAMPAIGNS: Campaign[] = [
   },
 ]
 
+// Campaigns created live through /campaign/new land here, written by create-campaign.mjs.
+// Read at request time (this file's exports are used from dynamic server routes only),
+// so a campaign created minutes ago shows up without a rebuild.
+function readDynamicCampaigns(): Campaign[] {
+  try {
+    const file = path.resolve(process.cwd(), '..', 'campaigns.json')
+    if (!fs.existsSync(file)) return []
+    return JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    return []
+  }
+}
+
+export function getAllCampaigns(): Campaign[] {
+  return [...CAMPAIGNS, ...readDynamicCampaigns()]
+}
+
 export function getCampaign(id: string): Campaign | undefined {
-  return CAMPAIGNS.find((c) => c.id === id)
+  return getAllCampaigns().find((c) => c.id === id)
 }

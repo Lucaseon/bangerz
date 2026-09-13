@@ -7,3 +7,5 @@ state2.json
 node_modules/
 xrpl-devex-hook/
 state3.json
+state-*.json
+campaigns.json
