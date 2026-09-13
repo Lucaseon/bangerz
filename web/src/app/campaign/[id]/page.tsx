@@ -8,6 +8,7 @@ import FundingBar from '@/components/protocol/FundingBar'
 import { TxReceiptList } from '@/components/protocol/TxReceipt'
 import LendPanel from '@/components/campaign/LendPanel'
 import LoanTimeline from '@/components/campaign/LoanTimeline'
+import LoanAdminPanel from '@/components/campaign/LoanAdminPanel'
 import { getCampaign } from '@/lib/campaigns'
 import type { LedgerSnapshot, Phase } from '@/lib/types'
 
@@ -38,6 +39,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const coverXrp = live?.broker ? Number(live.broker.coverAvailable) : campaign.targetXrp * 0.167
   const depositsXrp = live ? live.assetsTotal - (live.broker ? Number(live.broker.coverAvailable) : 0) : campaign.targetXrp * 0.55
   const loanSettled = live?.loan?.settled ?? false
+  const loanAlreadyOriginated = Boolean(live?.loanId || live?.loanId2)
 
   const date = new Date(campaign.eventDate)
   const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -82,7 +84,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
           <section>
             <DisplayTitle>Loan lifecycle</DisplayTitle>
-            <div className="mt-6"><LoanTimeline loanSettled={loanSettled} phase={phase} /></div>
+            <div className="mt-6"><LoanTimeline loanSettled={loanSettled} phase={phase} eventDate={campaign.eventDate} tenorDays={campaign.tenorDays} /></div>
           </section>
 
           <section>
@@ -93,8 +95,16 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           </section>
         </div>
 
-        <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-6">
           <LendPanel campaign={campaign} phase={phase} />
+          {campaign.live && (
+            <LoanAdminPanel
+              campaignId={campaign.id}
+              phase={phase}
+              fixedYieldPct={campaign.fixedYieldPct}
+              loanAlreadyOriginated={loanAlreadyOriginated}
+            />
+          )}
         </div>
       </div>
     </div>

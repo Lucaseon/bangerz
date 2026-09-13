@@ -259,13 +259,21 @@ async function subscribe(client) {
 }
 
 function buildLoanSet(s) {
+  // LOAN_INTEREST_RATE lets the web admin panel honor the fixed yield the organiser
+  // set in the campaign creation form. Principal stays fixed at CFG.principalXrp on
+  // purpose: the broker's cover (CFG.coverXrp) is deposited once at vault creation, and
+  // CoverRateMinimum is checked against principal + accrued interest — a bigger,
+  // form-driven principal without a matching cover top-up would fail tecNO_PERMISSION.
+  const interestRate = process.env.LOAN_INTEREST_RATE
+    ? Number(process.env.LOAN_INTEREST_RATE)
+    : CFG.interestRate
   return {
     TransactionType: 'LoanSet',
     Account: s.wallets.broker.address,
     Counterparty: s.wallets.borrower.address,
     LoanBrokerID: s.loanBrokerId,
     PrincipalRequested: xrpToDrops(CFG.principalXrp),
-    InterestRate: CFG.interestRate,
+    InterestRate: interestRate,
     PaymentTotal: CFG.paymentTotal,
     PaymentInterval: CFG.paymentIntervalSec,
     GracePeriod: CFG.gracePeriodSec,
