@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
+import { getCached, setCached } from '@/lib/stateCache'
 
 const REPO_ROOT = path.resolve(process.cwd(), '..')
 // Built at runtime (not a literal) so Turbopack's production build doesn't try to
@@ -12,22 +13,14 @@ const SCRIPT = ['read-state', '.mjs'].join('')
 // not just checked for existence.
 const STATE_FILE_PATTERN = /^state(-[a-z0-9-]+|[0-9]*)\.json$/
 
-// read-state.mjs opens a fresh WebSocket connection to Devnet every call (~3s). Every
-// page (/, /campaign/[id], /dashboard, /positions) fetches this on every navigation,
-// so clicking around the site was re-paying that 3s each time. A short cache (keyed
-// per vault) makes navigation feel instant without showing meaningfully stale data
-// (/console already polls this same endpoint every 5s, so 3s freshness is the norm there).
-const CACHE_MS = 3000
-const cache = new Map<string, { data: unknown; at: number }>()
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const requested = searchParams.get('state') ?? 'state.json'
   const stateFile = STATE_FILE_PATTERN.test(requested) ? requested : 'state.json'
 
-  const cached = cache.get(stateFile)
-  if (cached && Date.now() - cached.at < CACHE_MS) {
-    return Response.json(cached.data)
+  const cached = getCached(stateFile)
+  if (cached) {
+    return Response.json(cached)
   }
 
   const res = spawnSync('node', [SCRIPT], {
@@ -38,7 +31,7 @@ export async function GET(request: Request) {
   const lastLine = res.stdout.trim().split('\n').pop() ?? '{}'
   try {
     const data = JSON.parse(lastLine)
-    cache.set(stateFile, { data, at: Date.now() })
+    setCached(stateFile, data)
     return Response.json(data)
   } catch {
     return Response.json({ error: 'read-state failed', detail: res.stderr || res.stdout }, { status: 500 })

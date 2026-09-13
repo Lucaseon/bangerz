@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
+import { invalidate } from '@/lib/stateCache'
 
 const REPO_ROOT = path.resolve(process.cwd(), '..')
 const ALLOWED = new Set(['impair', 'default'])
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     return Response.json({ error: `action not allowed: ${action}` }, { status: 400 })
   }
   const res = spawnSync('node', [SCRIPT, action], { cwd: REPO_ROOT, encoding: 'utf8' })
+  invalidate('state.json')
   const lastLine = res.stdout.trim().split('\n').pop() ?? '{}'
   try {
     const data = JSON.parse(lastLine)

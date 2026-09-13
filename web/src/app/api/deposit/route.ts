@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
+import { invalidate } from '@/lib/stateCache'
 
 const REPO_ROOT = path.resolve(process.cwd(), '..')
 const SCRIPT = ['run-action', '.mjs'].join('')
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
     encoding: 'utf8',
     env: { ...process.env, LEND_ROLE: lendRole, LEND_AMOUNT_XRP: String(amount), STATE_FILE: `./${stateFile}` },
   })
+  invalidate(stateFile)
   const lastLine = res.stdout.trim().split('\n').pop() ?? '{}'
   try {
     const data = JSON.parse(lastLine)
